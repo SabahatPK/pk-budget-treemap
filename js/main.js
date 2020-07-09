@@ -1,167 +1,168 @@
 // set the dimensions and margins of the graph
 let margin = { top: 10, right: 30, bottom: 50, left: 60 },
-  width = 460 - margin.left - margin.right,
-  height = 400 - margin.top - margin.bottom;
+  width = 954 - margin.left - margin.right,
+  height = 924 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
 let svg = d3
   .select("#my_dataviz")
   .append("svg")
   .attr("width", width + margin.left + margin.right)
-  .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+  .attr("height", height + margin.top + margin.bottom);
 
-//OUTS: add a Year label to svg
+//start here: figure out what xlink:href is used for and then figure out another way to set it
+//that does not use DOM.uid which is only valid in Observable notebooks
+
+let format = d3.format(",d");
+
+let name = (d) =>
+  d
+    .ancestors()
+    .reverse()
+    .map((d) => d.data.name)
+    .join("/");
+
+function tile(node, x0, y0, x1, y1) {
+  d3.treemapBinary(node, 0, 0, width, height);
+  for (const child of node.children) {
+    child.x0 = x0 + (child.x0 / width) * (x1 - x0);
+    child.x1 = x0 + (child.x1 / width) * (x1 - x0);
+    child.y0 = y0 + (child.y0 / height) * (y1 - y0);
+    child.y1 = y0 + (child.y1 / height) * (y1 - y0);
+  }
+}
+
+let treemap = (data) =>
+  d3.treemap().tile(tile)(
+    d3
+      .hierarchy(data)
+      .sum((d) => d.value)
+      .sort((a, b) => b.value - a.value)
+  );
 
 //Read the data
-let promises = [
-  d3.csv("data/dfPovertyAdultLit.csv"),
-  d3.csv("data/dfPovertyMobileOwn.csv"),
-];
-let allData = [];
-let xAxisLabel = "Adult Literacy";
+//Loading into XLS from here: http://www.finance.gov.pk/fb_2019_20.html
+//Zoomable tree-map: https://observablehq.com/@d3/zoomable-treemap
+//Useful SO post: https://stackoverflow.com/questions/56281711/treemap-in-d3-v5-doesnt-support-nodes-anymore
+d3.json("data/flare-2.json").then(function (data) {
+  console.log(data);
 
-Promise.all(promises).then(function (data) {
-  data.forEach(function (eachDataset) {
-    eachDataset.forEach(function (d) {
-      d["Poverty Rate (%)"] = +d["Poverty Rate (%)"];
-      d["Year"] = new Date(d["Year"]);
-      if (
-        d.hasOwnProperty(
-          "Adult literacy, 25 or more years old (% of population aged 25 or more)"
-        )
-      ) {
-        d[
-          "Adult literacy, 25 or more years old (% of population aged 25 or more)"
-        ] = +d[
-          "Adult literacy, 25 or more years old (% of population aged 25 or more)"
-        ];
-      } else {
-        d["Households' mobile phone ownership (% of population)"] = +d[
-          "Households' mobile phone ownership (% of population)"
-        ];
-      }
-    });
-  });
+  const x = d3.scaleLinear().rangeRound([0, width]);
+  const y = d3.scaleLinear().rangeRound([0, height]);
 
-  allData = data;
+  let group = svg.append("g").call(render, treemap(data));
 
-  updateChart(allData, xAxisLabel);
-});
+  function render(group, root) {
+    const node = group
+      .selectAll("g")
+      .data(root.children.concat(root))
+      .enter()
+      .append("g");
+    // .join("g");
 
-//Add in event listener for indicator choice.
-$("#indicatorChoice").on("change", function () {
-  xAxisLabel =
-    $("#indicatorChoice").val() === "adultLit"
-      ? "Adult Literacy"
-      : "Mobile Phone Ownership";
-  updateChart(allData, xAxisLabel);
-});
+    node
+      .filter((d) => (d === root ? d.parent : d.children))
+      .attr("cursor", "pointer")
+      .on("click", (d) => (d === root ? zoomout(root) : zoomin(d)));
 
-//Add in event listener for geographic choice.
-$("#geographicChoice").on("change", function () {
-  updateChart(allData, xAxisLabel);
-});
+    node.append("title").text((d) => `${name(d)}\n${format(d.value)}`);
 
-function updateChart(someData, xAxisLabel) {
-  let dataAdultLit = d3
-    .nest()
-    .key(function (d) {
-      return d["Year"];
-    })
-    .entries(someData[0]);
+    console.log(node);
 
-  let dataMobileOwn = d3
-    .nest()
-    .key(function (d) {
-      return d["Year"];
-    })
-    .entries(someData[1]);
+    node
+      .append("rect")
+      // .attr("id", (d) => (d.leafUid = DOM.uid("leaf")).id)
+      .attr("id", (d) => (d.leafUid = 007))
+      .attr("fill", (d) => (d === root ? "#fff" : d.children ? "#ccc" : "#ddd"))
+      .attr("stroke", "#fff");
 
-  let filteredData =
-    $("#indicatorChoice").val() === "adultLit"
-      ? dataAdultLit[0]
-      : dataMobileOwn[0];
+    node
+      .append("clipPath")
+      // .attr("id", (d) => (d.clipUid = DOM.uid("clip")).id)
+      .attr("id", (d) => (d.clipUid = 9))
+      .append("use")
+      .attr("xlink:href", (d) => d.leafUid.href);
 
-  filteredData =
-    $("#geographicChoice").val() === "allProv"
-      ? filteredData["values"]
-      : filteredData["values"].filter(
-          (each) => each["Province"] === $("#geographicChoice").val()
-        );
+    node
+      .append("text")
+      .attr("clip-path", (d) => d.clipUid)
+      .attr("font-weight", (d) => (d === root ? "bold" : null))
+      .selectAll("tspan")
+      .data((d) =>
+        (d === root ? name(d) : d.data.name)
+          .split(/(?=[A-Z][^A-Z])/g)
+          .concat(format(d.value))
+      )
+      .enter()
+      .append("tspan")
+      // .join("tspan")
+      .attr("x", 3)
+      .attr(
+        "y",
+        (d, i, nodes) => `${(i === nodes.length - 1) * 0.3 + 1.1 + i * 0.9}em`
+      )
+      .attr("fill-opacity", (d, i, nodes) =>
+        i === nodes.length - 1 ? 0.7 : null
+      )
+      .attr("font-weight", (d, i, nodes) =>
+        i === nodes.length - 1 ? "normal" : null
+      )
+      .text((d) => d);
 
-  // Add X axis
-  let x = d3.scaleLinear().domain([0, 100]).range([0, width]);
-  svg
-    .append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x));
+    group.call(position, root);
+  }
 
-  //Add x-axis label:
-  svg
-    .append("text")
-    .attr(
-      "transform",
-      "translate(" + width / 2 + " ," + (height + margin.top + 30) + ")"
-    )
-    .attr("class", "xAxisLabel")
-    .style("text-anchor", "middle");
+  function position(group, root) {
+    group
+      .selectAll("g")
+      .attr("transform", (d) =>
+        d === root ? `translate(0,-30)` : `translate(${x(d.x0)},${y(d.y0)})`
+      )
+      .select("rect")
+      .attr("width", (d) => (d === root ? width : x(d.x1) - x(d.x0)))
+      .attr("height", (d) => (d === root ? 30 : y(d.y1) - y(d.y0)));
+  }
 
-  svg.selectAll(".xAxisLabel").text(xAxisLabel);
+  // When zooming in, draw the new nodes on top, and fade them in.
+  function zoomin(d) {
+    const group0 = group.attr("pointer-events", "none");
+    const group1 = (group = svg.append("g").call(render, d));
 
-  // Add Y axis
-  let y = d3.scaleLinear().domain([0, 100]).range([height, 0]);
-  svg.append("g").call(d3.axisLeft(y));
+    x.domain([d.x0, d.x1]);
+    y.domain([d.y0, d.y1]);
 
-  //Add y-axis label:
-  svg
-    .append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", 0 - margin.left)
-    .attr("x", 0 - height / 2)
-    .attr("dy", "1em")
-    .style("text-anchor", "middle")
-    .text("Poverty Rate");
-
-  // Color scale: give me a province name, I return a color
-  let color = d3
-    .scaleOrdinal()
-    .domain([
-      "Balochistan",
-      "Federal Capital Territory",
-      "Khyber Pakhtunkhwa",
-      "Punjab",
-      "Sindh",
-    ])
-    .range(["#440154ff", "#21908dff", "#fde725ff", "#129490", "#CE1483"]);
-
-  // JOIN new data with old elements.
-  var circles = svg.selectAll("circle").data(filteredData, function (d) {
-    return d["District"];
-  });
-
-  // EXIT old elements not present in new data.
-  circles.exit().attr("class", "exit").remove();
-
-  // ENTER new elements present in new data.
-  circles
-    .enter()
-    .append("circle")
-    .attr("class", "enter")
-    .attr("fill", function (d) {
-      return color(d["Province"]);
-    })
-    .merge(circles)
-    .attr("cy", function (d) {
-      return y(d["Poverty Rate (%)"]);
-    })
-    .attr("cx", function (d) {
-      return x(
-        d[
-          "Adult literacy, 25 or more years old (% of population aged 25 or more)"
-        ] || d["Households' mobile phone ownership (% of population)"]
+    svg
+      .transition()
+      .duration(750)
+      .call((t) => group0.transition(t).remove().call(position, d.parent))
+      .call((t) =>
+        group1
+          .transition(t)
+          .attrTween("opacity", () => d3.interpolate(0, 1))
+          .call(position, d)
       );
-    })
-    .attr("r", 5);
-}
+  }
+
+  // When zooming out, draw the old nodes on top, and fade them out.
+  function zoomout(d) {
+    const group0 = group.attr("pointer-events", "none");
+    const group1 = (group = svg.insert("g", "*").call(render, d.parent));
+
+    x.domain([d.parent.x0, d.parent.x1]);
+    y.domain([d.parent.y0, d.parent.y1]);
+
+    svg
+      .transition()
+      .duration(750)
+      .call((t) =>
+        group0
+          .transition(t)
+          .remove()
+          .attrTween("opacity", () => d3.interpolate(1, 0))
+          .call(position, d)
+      )
+      .call((t) => group1.transition(t).call(position, d.parent));
+  }
+
+  return svg.node();
+});
