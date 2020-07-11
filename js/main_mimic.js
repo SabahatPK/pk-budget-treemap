@@ -1,72 +1,71 @@
-// set the dimensions and margins of the graph
-let margin = { top: 10, right: 10, bottom: 10, left: 10 },
-  width = 900;
-height = 700;
+const width = 900;
+const height = 700;
+const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+const colorScale = d3.scaleOrdinal(d3.schemeSet2);
 
-const color = d3.scaleOrdinal(d3.schemeCategory10);
+d3.csv("data/Electricity generation by source@1.csv").then(function (d) {
+  const children = d.map((country) => ({
+    name: country.Country,
+    children: Object.entries(country)
+      .map((c) => {
+        if (c[0] == "" || c[0] == "Country" || c[0] == "Year") return;
+        else
+          return {
+            name: c[0],
+            value: c[1],
+          };
+      })
+      .filter((d) => d),
+  }));
 
-d3.csv("data/data.csv").then(function (results) {
-  //Update the "Rs,millions" value to be a number:
-  for (let index = 0; index < results.length; index++) {
-    const element = results[index];
+  const hierarchy = d3
+    .hierarchy(children)
+    .sum((d) => d.value)
+    .sort((a, b) => b.value - a.value);
 
-    for (const property in element) {
-      if (property === "Rs,millions") {
-        element[property] = parseInt(element[property].replace(/,/g, ""));
-      }
-    }
-  }
+  const treemap = d3
+    .treemap()
+    // set the size of the treemap render area
+    .size([width, height])
+    // set the padding between every rectangle in px
+    .padding(2)
+    // set the padding at the top of each group of rectangles
+    // so that we can fit the country labels
+    .paddingTop(10)
+    // Set the generator to round pixel values to the nearest value
+    // (makes things look better)
+    .round(true);
 
-  console.log(results);
-
-  //START HERE: copy JSON data format (but with OWN data)
-  //exactly to see if that fixes issue?
-
-  let dataStratified = d3
-    .stratify()
-    .id(function (d) {
-      return d.Child;
-    })
-    .parentId(function (d) {
-      return d.Parent;
-    })(results);
-
-  let myTreemap = (data) =>
-    d3.treemap().size([width, height]).padding(1).round(true)(
-      d3
-        .hierarchy(data)
-        .sum((d) => d.data["Rs,millions"])
-        .sort((a, b) => b.data["Rs,millions"] - a.data["Rs,millions"])
-    );
-
-  const root = myTreemap(dataStratified);
-
-  console.log(root);
+  const root = treemap(hierarchy);
 
   const svg = d3
-    .select("#my_dataviz")
-    .append("svg")
+    .create("svg")
     .style("font-family", "sans-serif")
     .attr("width", width)
     .attr("height", height);
 
   const g = svg.append("g").attr("class", "treemap-container");
 
+  console.log(root);
+
   // Place the labels for our countries
-  g.selectAll("text.budgetline")
+  g.selectAll("text.country")
     // The data is the first "generation" of children
-    .data(root.children)
+    .data(root.data, function (d) {
+      return d.children;
+    })
+    // .data(root.children)
     .enter()
     .append("text")
-    .attr("class", "budgetline")
+    .attr("class", "country")
     // The rest is just placement/styling
     .attr("x", (d) => d.x0)
     .attr("y", (d) => d.y0)
     .attr("dy", "0.6em")
     .attr("dx", 3)
     .style("font-size", 12)
-    // Remember, the data on the original node is available on node.data
-    .text((d) => d.data.data.Child);
+    // Remember, the data on the original node is available on node.data (d.data here)
+    .text((d) => d.data.name);
 
   // Now, we place the groups for all of the leaf nodes
   const leaf = g
@@ -80,21 +79,22 @@ d3.csv("data/data.csv").then(function (results) {
     .attr("transform", (d) => `translate(${d.x0},${d.y0})`)
     .style("font-size", 10);
 
-  console.log(root.leaves());
-
   // A title element tells the browser to display its text value
   // in a popover when the cursor is held over a rect. This is a simple
   // way to add some interactivity
-  leaf.append("title").text((d) => d.data.id);
+  leaf
+    .append("title")
+    .text(
+      (d) =>
+        `${d.parent.data.name}-${d.data.name}\n${
+          d.value.toLocaleString() + " GWh"
+        }`
+    );
 
-  // Now we append the rects.
+  // Now we append the rects. Nothing crazy here
   leaf
     .append("rect")
-    .attr("id", (d) => d.data.id)
-    .attr("fill", (d) => {
-      while (d.depth > 1) d = d.parent;
-      return color(d.data.data.Child);
-    })
+    .attr("fill", (d) => colorScale(d.parent.data.name))
     .attr("opacity", 0.7)
     // the width is the right edge position - the left edge position
     .attr("width", (d) => d.x1 - d.x0)
@@ -117,22 +117,24 @@ d3.csv("data/data.csv").then(function (results) {
       top = d.y0,
       bottom = d.y1,
       // calculate its height from the data
-      height = bottom - top;
+      height = d.y1 - d.y0;
 
     // too small to show text
-    const tooSmall = width < 24 || height < 15;
+    const tooSmall = width < 34 || height < 25;
 
-    // and append the text
+    // and append the text (you saw something similar with the pie chart (day 6)
     d3.select(current)
       .append("text")
       // If it's too small, don't show the text
       .attr("opacity", tooSmall ? 0 : 0.9)
       .selectAll("tspan")
-      .data((d) => [d.data.data.Child, d.value.toLocaleString()])
+      .data((d) => [d.data.name, d.value.toLocaleString()])
       .enter()
       .append("tspan")
       .attr("x", 3)
       .attr("y", (d, i) => (i ? "2.5em" : "1.15em"))
       .text((d) => d);
   });
+
+  return svg.node();
 });
