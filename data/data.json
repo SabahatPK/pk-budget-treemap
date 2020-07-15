@@ -1,0 +1,57 @@
+{
+  "name": "A. CURRENT",
+  "children": [
+    {
+      "name": "General Public Service",
+      "children": [
+        { "name": "Something under GPS - 1", "value": 50 },
+        { "name": "Something under GPS - 2", "value": 100 },
+        { "name": "Something under GPS - 3", "value": 100 },
+        { "name": "Something under GPS - 4", "value": 50 },
+        { "name": "Something under GPS - 5", "value": 100 },
+        { "name": "Something under GPS - 6", "value": 100 }
+      ]
+    },
+    {
+      "name": "Defence Affairs and Services",
+      "value": 500
+    },
+    {
+      "name": "Public Order and Safety Affairs",
+      "value": 500
+    },
+    {
+      "name": "Economic Affairs",
+      "children": [
+        { "name": "Something under EA - 1", "value": 500 },
+        { "name": "Something under EA - 2", "value": 500 },
+        { "name": "Something under EA - 3", "value": 250 },
+        { "name": "Something under EA - 4", "value": 250 }
+      ]
+    },
+    {
+      "name": "Environment Protection",
+      "value": 500
+    },
+    {
+      "name": "Housing and Community Amenities",
+      "value": 500
+    },
+    {
+      "name": "Health Affairs & Services",
+      "value": 500
+    },
+    {
+      "name": "Recreation, Culture and Religion",
+      "value": 1500
+    },
+    {
+      "name": "Education Affairs and Services",
+      "value": 500
+    },
+    {
+      "name": "Social Protection",
+      "value": 1500
+    }
+  ]
+}

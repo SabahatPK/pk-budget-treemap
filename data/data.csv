@@ -1,22 +1,22 @@
-﻿Child,Parent,"Rs,millions"
-A. CURRENT,," 8,000.00 "
-General Public Service,A. CURRENT, 500.00 
-Defence Affairs and Services,A. CURRENT, 500.00 
-Public Order and Safety Affairs,A. CURRENT, 500.00 
-Economic Affairs,A. CURRENT," 1,500.00 "
-Environment Protection,A. CURRENT, 500.00 
-Housing and Community Amenities,A. CURRENT, 500.00 
-Health Affairs & Services,A. CURRENT, 500.00 
-"Recreation, Culture and Religion",A. CURRENT," 1,500.00 "
-Education Affairs and Services,A. CURRENT, 500.00 
-Social Protection,A. CURRENT," 1,500.00 "
-Something under GPS - 1,General Public Service, 50.00 
-Something under GPS - 2,General Public Service, 100.00 
-Something under GPS - 3,General Public Service, 100.00 
-Something under GPS - 4,General Public Service, 50.00 
-Something under GPS - 5,General Public Service, 100.00 
-Something under GPS - 6,General Public Service, 100.00 
-Something under EA - 1,Economic Affairs, 500.00 
-Something under EA - 2,Economic Affairs, 500.00 
-Something under EA - 3,Economic Affairs, 250.00 
-Something under EA - 4,Economic Affairs, 250.00 
+﻿SubMain,Main,"Rs,millions"
+A. CURRENT,,"8,000.00"
+General Public Service,A. CURRENT,500
+Defence Affairs and Services,A. CURRENT,500
+Public Order and Safety Affairs,A. CURRENT,500
+Economic Affairs,A. CURRENT,"1,500.00"
+Environment Protection,A. CURRENT,500
+Housing and Community Amenities,A. CURRENT,500
+Health Affairs & Services,A. CURRENT,500
+"Recreation, Culture and Religion",A. CURRENT,"1,500.00"
+Education Affairs and Services,A. CURRENT,500
+Social Protection,A. CURRENT,"1,500.00"
+Something under GPS - 1,General Public Service,50
+Something under GPS - 2,General Public Service,100
+Something under GPS - 3,General Public Service,100
+Something under GPS - 4,General Public Service,50
+Something under GPS - 5,General Public Service,100
+Something under GPS - 6,General Public Service,100
+Something under EA - 1,Economic Affairs,500
+Something under EA - 2,Economic Affairs,500
+Something under EA - 3,Economic Affairs,250
+Something under EA - 4,Economic Affairs,250
